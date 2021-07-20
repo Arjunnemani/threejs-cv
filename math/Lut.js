@@ -1,190 +1,169 @@
-import {
-	Color
-} from 'three';
+( function () {
 
-class Lut {
+	class Lut {
 
- 	constructor( colormap, numberofcolors ) {
+		constructor( colormap, numberofcolors ) {
 
-		this.lut = [];
-		this.setColorMap( colormap, numberofcolors );
-
-	}
-
-	set( value ) {
-
-		if ( value instanceof Lut ) {
-
-			this.copy( value );
+			this.lut = [];
+			this.setColorMap( colormap, numberofcolors );
 
 		}
 
-		return this;
+		set( value ) {
 
-	}
+			if ( value instanceof Lut ) {
 
-	setMin( min ) {
+				this.copy( value );
 
-		this.minV = min;
+			}
 
-		return this;
+			return this;
 
-	}
+		}
 
-	setMax( max ) {
+		setMin( min ) {
 
-		this.maxV = max;
+			this.minV = min;
+			return this;
 
-		return this;
+		}
 
-	}
+		setMax( max ) {
 
-	setColorMap( colormap, numberofcolors = 32 ) {
+			this.maxV = max;
+			return this;
 
-		this.map = ColorMapKeywords[ colormap ] || ColorMapKeywords.rainbow;
-		this.n = numberofcolors;
+		}
 
-		const step = 1.0 / this.n;
+		setColorMap( colormap, numberofcolors = 32 ) {
 
-		this.lut.length = 0;
+			this.map = ColorMapKeywords[ colormap ] || ColorMapKeywords.rainbow;
+			this.n = numberofcolors;
+			const step = 1.0 / this.n;
+			this.lut.length = 0;
 
-		for ( let i = 0; i <= 1; i += step ) {
+			for ( let i = 0; i <= 1; i += step ) {
 
-			for ( let j = 0; j < this.map.length - 1; j ++ ) {
+				for ( let j = 0; j < this.map.length - 1; j ++ ) {
 
-				if ( i >= this.map[ j ][ 0 ] && i < this.map[ j + 1 ][ 0 ] ) {
+					if ( i >= this.map[ j ][ 0 ] && i < this.map[ j + 1 ][ 0 ] ) {
 
-					const min = this.map[ j ][ 0 ];
-					const max = this.map[ j + 1 ][ 0 ];
+						const min = this.map[ j ][ 0 ];
+						const max = this.map[ j + 1 ][ 0 ];
+						const minColor = new THREE.Color( this.map[ j ][ 1 ] );
+						const maxColor = new THREE.Color( this.map[ j + 1 ][ 1 ] );
+						const color = minColor.lerp( maxColor, ( i - min ) / ( max - min ) );
+						this.lut.push( color );
 
-					const minColor = new Color( this.map[ j ][ 1 ] );
-					const maxColor = new Color( this.map[ j + 1 ][ 1 ] );
-
-					const color = minColor.lerp( maxColor, ( i - min ) / ( max - min ) );
-
-					this.lut.push( color );
+					}
 
 				}
 
 			}
 
-		}
-
-		return this;
-
-	}
-
-	copy( lut ) {
-
-		this.lut = lut.lut;
-		this.map = lut.map;
-		this.n = lut.n;
-		this.minV = lut.minV;
-		this.maxV = lut.maxV;
-
-		return this;
-
-	}
-
-	getColor( alpha ) {
-
-		if ( alpha <= this.minV ) {
-
-			alpha = this.minV;
-
-		} else if ( alpha >= this.maxV ) {
-
-			alpha = this.maxV;
+			return this;
 
 		}
 
-		alpha = ( alpha - this.minV ) / ( this.maxV - this.minV );
+		copy( lut ) {
 
-		let colorPosition = Math.round( alpha * this.n );
-		colorPosition == this.n ? colorPosition -= 1 : colorPosition;
+			this.lut = lut.lut;
+			this.map = lut.map;
+			this.n = lut.n;
+			this.minV = lut.minV;
+			this.maxV = lut.maxV;
+			return this;
 
-		return this.lut[ colorPosition ];
+		}
 
-	}
+		getColor( alpha ) {
 
-	addColorMap( colormapName, arrayOfColors ) {
+			if ( alpha <= this.minV ) {
 
-		ColorMapKeywords[ colormapName ] = arrayOfColors;
+				alpha = this.minV;
 
-	}
+			} else if ( alpha >= this.maxV ) {
 
-	createCanvas() {
+				alpha = this.maxV;
 
-		const canvas = document.createElement( 'canvas' );
-		canvas.width = 1;
-		canvas.height = this.n;
+			}
 
-		this.updateCanvas( canvas );
+			alpha = ( alpha - this.minV ) / ( this.maxV - this.minV );
+			let colorPosition = Math.round( alpha * this.n );
+			colorPosition == this.n ? colorPosition -= 1 : colorPosition;
+			return this.lut[ colorPosition ];
 
-		return canvas;
+		}
 
-	}
+		addColorMap( colormapName, arrayOfColors ) {
 
-	updateCanvas( canvas ) {
+			ColorMapKeywords[ colormapName ] = arrayOfColors;
 
-		const ctx = canvas.getContext( '2d', { alpha: false } );
+		}
 
-		const imageData = ctx.getImageData( 0, 0, 1, this.n );
+		createCanvas() {
 
-		const data = imageData.data;
+			const canvas = document.createElement( 'canvas' );
+			canvas.width = 1;
+			canvas.height = this.n;
+			this.updateCanvas( canvas );
+			return canvas;
 
-		let k = 0;
+		}
 
-		const step = 1.0 / this.n;
+		updateCanvas( canvas ) {
 
-		for ( let i = 1; i >= 0; i -= step ) {
+			const ctx = canvas.getContext( '2d', {
+				alpha: false
+			} );
+			const imageData = ctx.getImageData( 0, 0, 1, this.n );
+			const data = imageData.data;
+			let k = 0;
+			const step = 1.0 / this.n;
 
-			for ( let j = this.map.length - 1; j >= 0; j -- ) {
+			for ( let i = 1; i >= 0; i -= step ) {
 
-				if ( i < this.map[ j ][ 0 ] && i >= this.map[ j - 1 ][ 0 ] ) {
+				for ( let j = this.map.length - 1; j >= 0; j -- ) {
 
-					const min = this.map[ j - 1 ][ 0 ];
-					const max = this.map[ j ][ 0 ];
+					if ( i < this.map[ j ][ 0 ] && i >= this.map[ j - 1 ][ 0 ] ) {
 
-					const minColor = new Color( this.map[ j - 1 ][ 1 ] );
-					const maxColor = new Color( this.map[ j ][ 1 ] );
+						const min = this.map[ j - 1 ][ 0 ];
+						const max = this.map[ j ][ 0 ];
+						const minColor = new THREE.Color( this.map[ j - 1 ][ 1 ] );
+						const maxColor = new THREE.Color( this.map[ j ][ 1 ] );
+						const color = minColor.lerp( maxColor, ( i - min ) / ( max - min ) );
+						data[ k * 4 ] = Math.round( color.r * 255 );
+						data[ k * 4 + 1 ] = Math.round( color.g * 255 );
+						data[ k * 4 + 2 ] = Math.round( color.b * 255 );
+						data[ k * 4 + 3 ] = 255;
+						k += 1;
 
-					const color = minColor.lerp( maxColor, ( i - min ) / ( max - min ) );
-
-					data[ k * 4 ] = Math.round( color.r * 255 );
-					data[ k * 4 + 1 ] = Math.round( color.g * 255 );
-					data[ k * 4 + 2 ] = Math.round( color.b * 255 );
-					data[ k * 4 + 3 ] = 255;
-
-					k += 1;
+					}
 
 				}
 
 			}
 
+			ctx.putImageData( imageData, 0, 0 );
+			return canvas;
+
 		}
-
-		ctx.putImageData( imageData, 0, 0 );
-
-		return canvas;
 
 	}
 
-}
+	Lut.prototype.lut = [];
+	Lut.prototype.map = [];
+	Lut.prototype.n = 256;
+	Lut.prototype.minV = 0;
+	Lut.prototype.maxV = 1;
+	const ColorMapKeywords = {
+		'rainbow': [[ 0.0, 0x0000FF ], [ 0.2, 0x00FFFF ], [ 0.5, 0x00FF00 ], [ 0.8, 0xFFFF00 ], [ 1.0, 0xFF0000 ]],
+		'cooltowarm': [[ 0.0, 0x3C4EC2 ], [ 0.2, 0x9BBCFF ], [ 0.5, 0xDCDCDC ], [ 0.8, 0xF6A385 ], [ 1.0, 0xB40426 ]],
+		'blackbody': [[ 0.0, 0x000000 ], [ 0.2, 0x780000 ], [ 0.5, 0xE63200 ], [ 0.8, 0xFFFF00 ], [ 1.0, 0xFFFFFF ]],
+		'grayscale': [[ 0.0, 0x000000 ], [ 0.2, 0x404040 ], [ 0.5, 0x7F7F80 ], [ 0.8, 0xBFBFBF ], [ 1.0, 0xFFFFFF ]]
+	};
 
-Lut.prototype.lut = [];
-Lut.prototype.map = [];
-Lut.prototype.n = 256;
-Lut.prototype.minV = 0;
-Lut.prototype.maxV = 1;
+	THREE.ColorMapKeywords = ColorMapKeywords;
+	THREE.Lut = Lut;
 
-const ColorMapKeywords = {
-
-	'rainbow': [[ 0.0, 0x0000FF ], [ 0.2, 0x00FFFF ], [ 0.5, 0x00FF00 ], [ 0.8, 0xFFFF00 ], [ 1.0, 0xFF0000 ]],
-	'cooltowarm': [[ 0.0, 0x3C4EC2 ], [ 0.2, 0x9BBCFF ], [ 0.5, 0xDCDCDC ], [ 0.8, 0xF6A385 ], [ 1.0, 0xB40426 ]],
-	'blackbody': [[ 0.0, 0x000000 ], [ 0.2, 0x780000 ], [ 0.5, 0xE63200 ], [ 0.8, 0xFFFF00 ], [ 1.0, 0xFFFFFF ]],
-	'grayscale': [[ 0.0, 0x000000 ], [ 0.2, 0x404040 ], [ 0.5, 0x7F7F80 ], [ 0.8, 0xBFBFBF ], [ 1.0, 0xFFFFFF ]]
-
-};
-
-export { Lut, ColorMapKeywords };
+} )();
